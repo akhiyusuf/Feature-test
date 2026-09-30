@@ -221,9 +221,24 @@ export default function ReciteAfterMe() {
     }
   };
 
+  // Enhanced State Machine
+  const [appState, setAppState] = useState<'idle' | 'listening' | 'analyzing' | 'correcting' | 'feedback_positive'>('idle');
+
+  // Automatically trigger correct recitation audio on mistake
+  useEffect(() => {
+    if (appState === 'correcting' && currentVerse?.audioUrl) {
+      playQariAudio();
+      // After Qari finishes, automatically prompt user again
+      qariAudioRef.current!.onended = () => {
+        setIsPlayingModelAudio(false);
+        setAppState('awaiting_repetition');
+      };
+    }
+  }, [appState, currentVerse]);
+
   // Send audio to API and process result
   const sendAudioForAnalysis = async (audioBlob: Blob) => {
-    setIsAnalyzing(true);
+    setAppState('analyzing');
     setErrorStatus(null);
 
     try {
@@ -253,41 +268,34 @@ export default function ReciteAfterMe() {
           playChime(true);
           setStreak((prev) => prev + 1);
           setConsecutiveMistakes(0);
+          setAppState('feedback_positive');
 
-          if (chunkMode === 'word') {
-            if (currentWordChunkIndex < verseWords.length - 1) {
-              if (autoAdvance) {
-                setTimeout(() => {
-                  setCurrentWordChunkIndex((prev) => prev + 1);
-                  setAlignment(null);
-                  setLastTranscribedText(null);
-                }, 1000);
-              }
-            } else {
-              // Mastered all words in verse!
-              setMasteredVerses((prev) => new Set(prev).add(currentVerseIndex));
-            }
-          } else {
-            setMasteredVerses((prev) => new Set(prev).add(currentVerseIndex));
-
-            if (autoAdvance && currentVerseIndex < verses.length - 1) {
-              setTimeout(() => {
+          if (autoAdvance) {
+            setTimeout(() => {
+              if (chunkMode === 'word' && currentWordChunkIndex < verseWords.length - 1) {
+                setCurrentWordChunkIndex((prev) => prev + 1);
+                setAlignment(null);
+                setAppState('idle');
+              } else {
                 goToNextVerse();
-              }, 1200);
-            }
+                setAppState('idle');
+              }
+            }, 1500);
+          } else {
+            setAppState('idle');
           }
         } else {
-          // Mistake detected!
+          // Mistake detected! Automatically switch to correcting state
           playChime(false);
           setStreak(0);
           setConsecutiveMistakes((prev) => prev + 1);
+          setAppState('correcting');
         }
       }
     } catch (err: any) {
       console.error('Recitation processing error:', err);
       setErrorStatus(err.message || 'Could not process recitation');
-    } finally {
-      setIsAnalyzing(false);
+      setAppState('idle');
     }
   };
 
