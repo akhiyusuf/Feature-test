@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(`${process.env.MODAL_API_URL}/process-audio`, {
+    const response = await fetch(`${process.env.MODAL_API_URL}`, {
       method: 'POST',
       body: formData,
       headers: {
