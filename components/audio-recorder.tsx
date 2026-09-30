@@ -42,7 +42,8 @@ export default function AudioRecorder() {
             const result = await response.json();
             setFeedback(result.message || 'Analysis complete.');
           } else {
-            setFeedback('Error analyzing recitation.');
+            const errorData = await response.json().catch(() => ({}));
+            setFeedback(`Error analyzing recitation: ${errorData.error || response.statusText}`);
           }
         } catch (error) {
           setFeedback('Internal error.');
