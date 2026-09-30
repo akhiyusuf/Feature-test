@@ -1,0 +1,6 @@
+{
+  "name": "Recite After Me",
+  "description": "An AI-powered Quran recitation correction tool.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

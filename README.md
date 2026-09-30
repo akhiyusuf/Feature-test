@@ -1,11 +1,21 @@
-<div align="center">
+# Recite After Me
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+An AI-powered Quran recitation correction tool.
 
-  <h1>Built with AI Studio</h2>
+## Modal Deployment
+The `tarteel-ai/whisper-base-ar-quran` model is deployed as a serverless GPU function on Modal.
+- The Modal application exposes a FastAPI endpoint for audio processing.
+- Audio chunks are processed with VAD followed by ASR inference.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Alignment Logic
+- Word-level Levenshtein alignment is performed against canonical Uthmani text.
+- Arabic text is normalized (stripping tashkeel, unifying forms) before comparison.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## False-Flag Mitigation
+- Two consecutive failed attempts are required before flagging an error.
+- ASR confidence thresholds are applied; low-confidence tokens are ignored unless repeated.
+- The system is configured to be tolerant of minor tajweed variations (madd, ghunnah).
+- A fallback to `rakansuliman/tadabur-whisper-medium` is implemented if accuracy is low.
 
-</div>
+## Telemetry
+Performance telemetry is logged for auditing, including inference time, confidence scores, and correction rates to ensure performance and cost efficiency.
