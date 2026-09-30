@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -25,8 +26,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body suppressHydrationWarning>
         {children}
-        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-        <script dangerouslySetInnerHTML={{ __html: 'eruda.init();' }} />
+        <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy="afterInteractive" onLoad={() => {(window as any).eruda.init()}} />
       </body>
     </html>
   );

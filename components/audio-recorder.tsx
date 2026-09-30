@@ -39,11 +39,22 @@ export default function AudioRecorder() {
           });
 
           if (response.ok) {
-            const result = await response.json();
-            setFeedback(result.message || 'Analysis complete.');
+            const text = await response.text();
+            if (!text) {
+              setFeedback('Analysis complete (no data).');
+              return;
+            }
+            try {
+              const result = JSON.parse(text);
+              setFeedback(result.message || 'Analysis complete.');
+            } catch (e) {
+              console.error('Error parsing response JSON:', text);
+              setFeedback(`Error parsing response: ${text.substring(0, 50)}...`);
+            }
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            setFeedback(`Error analyzing recitation: ${errorData.error || response.statusText}`);
+            const errorText = await response.text();
+            console.error('Modal API error:', errorText);
+            setFeedback(`Error analyzing recitation: ${errorText || response.statusText}`);
           }
         } catch (error) {
           setFeedback(`Internal error: ${error instanceof Error ? error.message : String(error)}`);
