@@ -46,7 +46,7 @@ export default function AudioRecorder() {
             }
             try {
               const result = JSON.parse(text);
-              setFeedback(result.message || 'Analysis complete.');
+              setFeedback(result.text || result.message || 'Analysis complete.');
             } catch (e) {
               console.error('Error parsing response JSON:', text);
               setFeedback(`Error parsing response: ${text.substring(0, 50)}...`);
