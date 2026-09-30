@@ -46,7 +46,7 @@ export default function AudioRecorder() {
             setFeedback(`Error analyzing recitation: ${errorData.error || response.statusText}`);
           }
         } catch (error) {
-          setFeedback('Internal error.');
+          setFeedback(`Internal error: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           setStatus(null);
         }
