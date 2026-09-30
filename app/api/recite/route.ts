@@ -17,8 +17,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`Modal API error: ${response.status} ${response.statusText}`);
-      return NextResponse.json({ error: `Failed to process audio: ${response.status}` }, { status: response.status });
+      const errorText = await response.text();
+      console.error(`Modal API error: ${response.status} ${response.statusText}. Details: ${errorText}`);
+      return NextResponse.json({ error: `Failed to process audio: ${response.status}. Details: ${errorText}` }, { status: response.status });
     }
 
     const data = await response.json();
