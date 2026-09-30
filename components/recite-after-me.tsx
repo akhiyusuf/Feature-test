@@ -94,9 +94,31 @@ export default function ReciteAfterMe() {
     loadSurah(num);
   };
 
+  // Silent background warmup ping to preheat Modal GPU container
+  const pingWarmup = useCallback(() => {
+    try {
+      const formData = new FormData();
+      formData.append('warmup', 'true');
+      fetch('/api/recite', {
+        method: 'POST',
+        body: formData,
+      }).catch(() => {});
+    } catch {
+      // Ignore background errors
+    }
+  }, []);
+
+  // Pre-warm container as soon as the app loads
+  useEffect(() => {
+    pingWarmup();
+  }, [pingWarmup]);
+
   // Play Sheikh Mishary Audio for the current verse
   const playQariAudio = useCallback(() => {
     if (!currentVerse?.audioUrl) return;
+
+    // Trigger background warmup while user is listening
+    pingWarmup();
 
     if (qariAudioRef.current) {
       qariAudioRef.current.pause();
@@ -117,7 +139,7 @@ export default function ReciteAfterMe() {
     audio.play().catch(() => {
       setIsPlayingModelAudio(false);
     });
-  }, [currentVerse]);
+  }, [currentVerse, pingWarmup]);
 
   const stopQariAudio = () => {
     if (qariAudioRef.current) {

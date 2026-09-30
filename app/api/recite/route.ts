@@ -4,19 +4,41 @@ import { alignRecitation, normalizeArabic } from '@/lib/arabic-aligner';
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+    const isWarmup = formData.get('warmup') === 'true';
     const expectedText = formData.get('expected_text')?.toString() || '';
     const audioFile = formData.get('audio');
-
-    if (!audioFile) {
-      return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
-    }
 
     if (!process.env.MODAL_API_URL) {
       console.error('MODAL_API_URL is not set in environment variables');
       return NextResponse.json({ error: 'Modal API URL not configured' }, { status: 500 });
     }
 
-    // Forward the formData to Modal (including expected_text if supported by backend)
+    // Warmup request handling: sends ping to wake up GPU container silently
+    if (isWarmup) {
+      const warmupFormData = new FormData();
+      warmupFormData.append('warmup', 'true');
+      // Include dummy audio blob so it satisfies any existing File requirements
+      const dummyBlob = new Blob([new Uint8Array(16)], { type: 'audio/webm' });
+      warmupFormData.append('audio', dummyBlob, 'warmup.webm');
+
+      fetch(`${process.env.MODAL_API_URL}`, {
+        method: 'POST',
+        body: warmupFormData,
+        headers: {
+          ...(process.env.MODAL_API_TOKEN ? { Authorization: `Bearer ${process.env.MODAL_API_TOKEN}` } : {}),
+        },
+      }).catch((err) => {
+        console.log('Background warmup ping in progress:', err?.message);
+      });
+
+      return NextResponse.json({ status: 'warming_up' });
+    }
+
+    if (!audioFile) {
+      return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+    }
+
+    // Forward the formData to Modal
     const modalFormData = new FormData();
     modalFormData.append('audio', audioFile);
     if (expectedText) {
