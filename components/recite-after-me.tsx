@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+type AppState = 'idle' | 'listening' | 'analyzing' | 'correcting' | 'awaiting_repetition' | 'feedback_positive';
+
 export default function ReciteAfterMe() {
   // Surah and Verse State
   const [selectedSurahNumber, setSelectedSurahNumber] = useState<number>(1);
@@ -41,9 +43,10 @@ export default function ReciteAfterMe() {
   const [isPlayingModelAudio, setIsPlayingModelAudio] = useState(false);
   const qariAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // User Recording State
+  // User Recording State & State Machine
   const [isRecording, setIsRecording] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [appState, setAppState] = useState<AppState>('idle');
+  const isAnalyzing = appState === 'analyzing';
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -78,11 +81,11 @@ export default function ReciteAfterMe() {
       setSurahMeta(PRELOADED_SURAHS[surahNum].meta);
       setVerses(PRELOADED_SURAHS[surahNum].verses);
     } else {
-      setIsAnalyzing(true);
+      setAppState('analyzing');
       const data = await getSurahData(surahNum);
       setSurahMeta(data.meta);
       setVerses(data.verses);
-      setIsAnalyzing(false);
+      setAppState('idle');
     }
   }, []);
 
@@ -92,7 +95,7 @@ export default function ReciteAfterMe() {
   };
 
   // Play Sheikh Mishary Audio for the current verse
-  const playQariAudio = () => {
+  const playQariAudio = useCallback(() => {
     if (!currentVerse?.audioUrl) return;
 
     if (qariAudioRef.current) {
@@ -114,7 +117,7 @@ export default function ReciteAfterMe() {
     audio.play().catch(() => {
       setIsPlayingModelAudio(false);
     });
-  };
+  }, [currentVerse]);
 
   const stopQariAudio = () => {
     if (qariAudioRef.current) {
@@ -217,24 +220,25 @@ export default function ReciteAfterMe() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setIsAnalyzing(true);
+      setAppState('analyzing');
     }
   };
-
-  // Enhanced State Machine
-  const [appState, setAppState] = useState<'idle' | 'listening' | 'analyzing' | 'correcting' | 'feedback_positive'>('idle');
 
   // Automatically trigger correct recitation audio on mistake
   useEffect(() => {
     if (appState === 'correcting' && currentVerse?.audioUrl) {
-      playQariAudio();
-      // After Qari finishes, automatically prompt user again
-      qariAudioRef.current!.onended = () => {
-        setIsPlayingModelAudio(false);
-        setAppState('awaiting_repetition');
-      };
+      const timer = setTimeout(() => {
+        playQariAudio();
+        if (qariAudioRef.current) {
+          qariAudioRef.current.onended = () => {
+            setIsPlayingModelAudio(false);
+            setAppState('awaiting_repetition');
+          };
+        }
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [appState, currentVerse]);
+  }, [appState, currentVerse?.audioUrl, playQariAudio]);
 
   // Send audio to API and process result
   const sendAudioForAnalysis = async (audioBlob: Blob) => {
@@ -484,7 +488,7 @@ export default function ReciteAfterMe() {
             )}
             {currentVerse?.translation && (
               <p className="text-sm text-slate-600">
-                "{currentVerse.translation}"
+                &ldquo;{currentVerse.translation}&rdquo;
               </p>
             )}
           </div>
