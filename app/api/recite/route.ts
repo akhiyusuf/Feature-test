@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Failed to process audio: ${response.status}. Details: ${errorText}` }, { status: response.status });
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    console.log('Raw response from Modal:', text);
+    const data = JSON.parse(text);
     return NextResponse.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
